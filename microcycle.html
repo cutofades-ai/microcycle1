@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Планирование недельного микроцикла</title>
+  
+  <!-- Библиотека для генерации фото (html2canvas) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Библиотека для генерации PDF (jsPDF) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  
+  <!-- Шрифт Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-page: #f8fafc;
+      --surface: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-subtle: #94a3b8;
+      --primary: #0f172a;
+      --primary-hover: #1e293b;
+      --accent: #10b981;
+      --accent-light: #ecfdf5;
+      --accent-hover: #059669;
+      --pdf-color: #e11d48;
+      --pdf-hover: #be123c;
+      --border: #e2e8f0;
+      --border-input: #cbd5e1;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.02);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      padding: 24px 16px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1540px;
+      margin: 0 auto;
+    }
+
+    /* Верхняя панель */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 20px;
+      background: var(--surface);
+      padding: 16px 20px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .brand-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: #f1f5f9;
+      color: #475569;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Группы стилизованных кнопок */
+    .actions-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f8fafc;
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+    }
+
+    button, .file-label {
+      background: var(--surface);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: var(--shadow-sm);
+      user-select: none;
+    }
+
+    button svg, .file-label svg {
+      width: 16px;
+      height: 16px;
+      stroke-width: 2;
+      flex-shrink: 0;
+    }
+
+    button:hover, .file-label:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      transform: translateY(-1px);
+    }
+
+    button:active, .file-label:active {
+      transform: translateY(0);
+    }
+
+    /* Кнопки сохранения в системе */
+    .btn-save-system {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff;
+      border: 1px solid #059669;
+      box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+    }
+    .btn-save-system:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-library {
+      background: #ffffff;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+    }
+    .btn-library:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    .badge-count {
+      background: #e2e8f0;
+      color: #334155;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 12px;
+      font-weight: 700;
+      margin-left: 2px;
+    }
+
+    /* Кнопки экспорта (фото / PDF) */
+    .btn-export-png {
+      background: #0f172a;
+      color: #ffffff;
+      border: 1px solid #0f172a;
+    }
+    .btn-export-png:hover {
+      background: #1e293b;
+      color: #ffffff;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.25);
+    }
+
+    .btn-export-pdf {
+      background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+      color: #ffffff;
+      border: 1px solid #e11d48;
+      box-shadow: 0 2px 4px rgba(225, 29, 72, 0.2);
+    }
+    .btn-export-pdf:hover {
+      background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 8px rgba(225, 29, 72, 0.3);
+    }
+
+    .btn-danger {
+      color: #e11d48;
+      border-color: #fecdd3;
+    }
+    .btn-danger:hover {
+      background: #fff1f2;
+      border-color: #fda4af;
+    }
+
+    /* Вкладки */
+    .tabs-wrapper {
+      display: flex;
+      justify-content: flex-start;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--border);
+      gap: 8px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      border-radius: 0;
+      color: var(--text-muted);
+      padding: 11px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: none;
+      margin-bottom: -2px;
+    }
+
+    .tab-btn:hover {
+      background: transparent;
+      color: var(--text-main);
+      transform: none;
+    }
+
+    .tab-btn.active {
+      color: #0f172a;
+      border-bottom-color: #0f172a;
+    }
+
+    /* Рабочая область захвата */
+    #capture-area {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: var(--shadow-card);
+    }
+
+    /* Заголовок документа */
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .doc-title-main {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+
+    .doc-role-subtitle {
+      font-size: 14px;
+      color: var(--accent-hover);
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .doc-watermark {
+      font-size: 11px;
+      color: var(--text-subtle);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* Блок общей информации */
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .meta-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .meta-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .meta-input-box {
+      width: 100%;
+      min-height: 42px;
+      background: #ffffff;
+      border: 1px solid var(--border-input);
+      border-radius: var(--radius-sm);
+      padding: 9px 13px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-main);
+      line-height: 1.4;
+      outline: none;
+      transition: all 0.15s ease-in-out;
+      word-break: break-word;
+      display: block;
+    }
+
+    .meta-input-box:focus {
+      border-color: var(--accent);
+      background-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+    }
+
+    .meta-input-box:empty:before {
+      content: attr(data-placeholder);
+      color: var(--text-subtle);
+      font-weight: 400;
+      pointer-events: none;
+    }
+
+    /* Таблица */
+    .table-wrapper {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      min-width: 1240px;
+      background: var(--surface);
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      vertical-align: top;
+      word-wrap: break-word;
+    }
+
+    th {
+      background-color: #fafbfc;
+      padding: 12px 8px;
+      text-align: center;
+    }
+
+    .day-name {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .day-date {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      padding: 3px 8px;
+      border-radius: 4px;
+      outline: none;
+      display: inline-block;
+      min-width: 58px;
+      background: #f1f5f9;
+      transition: all 0.15s;
+    }
+
+    .day-date:focus {
+      background: var(--accent-light);
+      color: var(--accent-hover);
+      box-shadow: 0 0 0 2px var(--accent);
+    }
+
+    .row-title-col {
+      width: 220px;
+      background-color: #fcfcfd;
+      padding: 10px 14px;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    .row-title-num {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-subtle);
+      margin-right: 6px;
+    }
+
+    .row-title-text {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 1.35;
+    }
+
+    .editable-cell {
+      min-height: 42px;
+      padding: 8px 10px;
+      outline: none;
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: #334155;
+      transition: background 0.15s;
+    }
+
+    .editable-cell:focus {
+      background-color: #fbfdfc;
+      box-shadow: inset 0 0 0 1.5px var(--accent);
+    }
+
+    /* Модальное окно "Сохраненные микроциклы" */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 16px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #ffffff;
+      border-radius: var(--radius-lg);
+      max-width: 620px;
+      width: 100%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      animation: modalFadeIn 0.2s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .modal-header {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .modal-close-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 4px 8px;
+      box-shadow: none;
+    }
+
+    .modal-body {
+      padding: 18px 22px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .saved-item-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.15s;
+    }
+
+    .saved-item-card:hover {
+      border-color: #cbd5e1;
+      background: #f1f5f9;
+    }
+
+    .saved-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .saved-item-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .saved-item-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .saved-item-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .modal-empty {
+      text-align: center;
+      padding: 36px 12px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* Всплывающее уведомление (Toast) */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 500;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 1000;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.25s ease;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    @media (max-width: 900px) {
+      .top-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .actions-container {
+        justify-content: flex-start;
+      }
+      .meta-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .container { max-width: 100%; }
+      .top-bar, .tabs-wrapper, .modal-overlay, .toast { display: none !important; }
+      #capture-area { border: none; box-shadow: none; padding: 0; }
+      .table-wrapper { overflow: visible; border: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Панель управления -->
+    <div class="top-bar">
+      <div class="brand-title">
+        Планирование микроцикла
+        <span class="brand-badge">Football Pro</span>
+      </div>
+
+      <div class="actions-container">
+        
+        <!-- Группа 1: Сохранение внутри системы -->
+        <div class="btn-group">
+          <button class="btn-save-system" onclick="saveToSystemPrompt()">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+            Сохранить в системе
+          </button>
+          <button class="btn-library" onclick="openLibraryModal()">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            Мои циклы <span class="badge-count" id="cycles-count">0</span>
+          </button>
+        </div>
+
+        <!-- Группа 2: Экспорт на телефон / ПК (Фото и PDF) -->
+        <div class="btn-group">
+          <button class="btn-export-png" id="btn-export-png" onclick="downloadImage()">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            Фото (PNG)
+          </button>
+          <button class="btn-export-pdf" id="btn-export-pdf" onclick="downloadPDF()">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            Файл PDF
+          </button>
+        </div>
+
+        <!-- Группа 3: Дополнительно -->
+        <div class="btn-group">
+          <button onclick="saveToFile()" title="Экспорт файла .json">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            JSON
+          </button>
+          <label class="file-label" title="Импорт файла .json">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Импорт
+            <input type="file" id="importInput" accept=".json" style="display: none;" onchange="loadFromFile(event)">
+          </label>
+          <button class="btn-danger" onclick="clearCurrentPlan()" title="Очистить ячейки текущей вкладки">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            Очистить
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Вкладки по ролям тренеров -->
+    <div class="tabs-wrapper">
+      <button class="tab-btn active" onclick="switchTab('head', this)">Главный тренер</button>
+      <button class="tab-btn" onclick="switchTab('gk', this)">Тренер по вратарям</button>
+      <button class="tab-btn" onclick="switchTab('fitness', this)">Тренер по физподготовке</button>
+    </div>
+
+    <!-- Рабочая область -->
+    <div id="capture-area">
+      
+      <!-- Заголовок -->
+      <div class="doc-header">
+        <div>
+          <div class="doc-title-main">Планирование недельного микроцикла</div>
+          <div class="doc-role-subtitle" id="role-title">Главный тренер — Недельный план</div>
+        </div>
+        <div class="doc-watermark">Weekly Microcycle Planning</div>
+      </div>
+
+      <!-- БЛОК ОБЩЕЙ ИНФОРМАЦИИ (Название команды и Тип микроцикла) -->
+      <div class="meta-grid">
+        <div class="meta-card">
+          <label class="meta-label">Название команды</label>
+          <div class="meta-input-box" contenteditable="true" data-meta="team" data-placeholder="Введите название команды..."></div>
+        </div>
+        <div class="meta-card">
+          <label class="meta-label">Тип микроцикла</label>
+          <div class="meta-input-box" contenteditable="true" data-meta="cycleType" data-placeholder="Например: Соревновательный / Втягивающий..."></div>
+        </div>
+      </div>
+
+      <!-- Таблица недели -->
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th class="row-title-col"><span class="row-title-text">Параметры</span></th>
+              <th><span class="day-name">Понедельник</span><span class="day-date" contenteditable="true" data-date="mon">ДД.ММ</span></th>
+              <th><span class="day-name">Вторник</span><span class="day-date" contenteditable="true" data-date="tue">ДД.ММ</span></th>
+              <th><span class="day-name">Среда</span><span class="day-date" contenteditable="true" data-date="wed">ДД.ММ</span></th>
+              <th><span class="day-name">Четверг</span><span class="day-date" contenteditable="true" data-date="thu">ДД.ММ</span></th>
+              <th><span class="day-name">Пятница</span><span class="day-date" contenteditable="true" data-date="fri">ДД.ММ</span></th>
+              <th><span class="day-name">Суббота</span><span class="day-date" contenteditable="true" data-date="sat">ДД.ММ</span></th>
+              <th><span class="day-name">Воскресенье</span><span class="day-date" contenteditable="true" data-date="sun">ДД.ММ</span></th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <!-- Строки генерируются автоматически -->
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Модальное окно "Мои микроциклы" -->
+  <div class="modal-overlay" id="libraryModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Сохранённые микроциклы</div>
+        <button class="modal-close-btn" onclick="closeLibraryModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="savedCyclesList">
+        <!-- Список сохраненных микроциклов -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Плавающее уведомление (Toast) -->
+  <div class="toast" id="toast">
+    <span id="toast-message">Сохранено</span>
+  </div>
+
+  <script>
+    const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+    const roleNames = {
+      head: "Главный тренер",
+      gk: "Тренер по вратарям",
+      fitness: "Тренер по физподготовке"
+    };
+
+    const roleRows = {
+      head: [
+        { id: 'dayType', title: 'Тип дня' },
+        { id: 'weather', title: 'Погодные условия' },
+        { id: 'playersCount', title: 'Количество футболистов' },
+        { id: 'startTime', title: 'Начало тренировки' },
+        { id: 'duration', title: 'Длительность' },
+        { id: 'techTactical', title: 'Технико-тактические задачи' },
+        { id: 'physical', title: 'Физические задачи' },
+        { id: 'cognitive', title: 'Когнитивные задачи' },
+        { id: 'benchmarks', title: 'Ориентиры' },
+        { id: 'intensity', title: 'Интенсивность' }
+      ],
+      gk: [
+        { id: 'dayType', title: 'Тип дня' },
+        { id: 'weather', title: 'Погодные условия' },
+        { id: 'playersCount', title: 'Количество футболистов' },
+        { id: 'startTime', title: 'Начало тренировки' },
+        { id: 'duration', title: 'Длительность' },
+        { id: 'techTactical', title: 'Технико-тактические задачи' },
+        { id: 'physical', title: 'Физические задачи' },
+        { id: 'cognitive', title: 'Когнитивные задачи' },
+        { id: 'benchmarks', title: 'Ориентиры' },
+        { id: 'prevention', title: 'Профилактика' },
+        { id: 'individual', title: 'Индивидуальная работа' },
+        { id: 'volume', title: 'Объём' },
+        { id: 'intensity', title: 'Интенсивность' },
+        { id: 'monitoring', title: 'Мониторинг' },
+        { id: 'notes', title: 'Примечания' }
+      ],
+      fitness: [
+        { id: 'dayType', title: 'Тип дня' },
+        { id: 'playerGroup', title: 'Группа игроков' },
+        { id: 'playersCount', title: 'Количество футболистов' },
+        { id: 'startTime', title: 'Начало тренировки' },
+        { id: 'duration', title: 'Длительность' },
+        { id: 'techTactical', title: 'Технико-тактические задачи' },
+        { id: 'physical', title: 'Физические задачи' },
+        { id: 'cognitive', title: 'Когнитивные задачи' },
+        { id: 'prevention', title: 'Профилактика' },
+        { id: 'individual', title: 'Индивидуальная работа' },
+        { id: 'volume', title: 'Объем' },
+        { id: 'intensity', title: 'Интенсивность' },
+        { id: 'monitoring', title: 'Мониторинг' },
+        { id: 'notes', title: 'Примечания' }
+      ]
+    };
+
+    let currentTab = 'head';
+    let currentCycleId = null;
+
+    let appData = {
+      meta: { team: "", cycleType: "" },
+      dates: {},
+      head: {},
+      gk: {},
+      fitness: {}
+    };
+
+    function init() {
+      // Загрузка автосохраненного состояния
+      const saved = localStorage.getItem('football_microcycle_last_active');
+      if (saved) {
+        try {
+          appData = Object.assign(appData, JSON.parse(saved));
+        } catch(e) {
+          console.error(e);
+        }
+      }
+
+      renderTableBody();
+      loadTabContent();
+      updateCyclesBadge();
+
+      document.getElementById('capture-area').addEventListener('input', () => {
+        saveCurrentTabToMemory();
+        localStorage.setItem('football_microcycle_last_active', JSON.stringify(appData));
+      });
+    }
+
+    function renderTableBody() {
+      const tbody = document.getElementById('table-body');
+      const rows = roleRows[currentTab] || [];
+      
+      let html = '';
+      rows.forEach((row, index) => {
+        const num = String(index + 1).padStart(2, '0');
+        html += `
+          <tr>
+            <td class="row-title-col">
+              <span class="row-title-num">${num}</span>
+              <span class="row-title-text">${row.title}</span>
+            </td>
+            ${days.map(day => `
+              <td class="editable-cell" contenteditable="true" data-cell="${row.id}-${day}"></td>
+            `).join('')}
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    function saveCurrentTabToMemory() {
+      if (!appData.meta) appData.meta = {};
+      document.querySelectorAll('.meta-input-box').forEach(el => {
+        const key = el.getAttribute('data-meta');
+        appData.meta[key] = el.innerText.trim();
+      });
+
+      if (!appData.dates) appData.dates = {};
+      document.querySelectorAll('.day-date').forEach(el => {
+        appData.dates[el.getAttribute('data-date')] = el.innerText.trim();
+      });
+
+      if (!appData[currentTab]) appData[currentTab] = {};
+      document.querySelectorAll('.editable-cell').forEach(el => {
+        const key = el.getAttribute('data-cell');
+        appData[currentTab][key] = el.innerHTML;
+      });
+    }
+
+    function loadTabContent() {
+      document.getElementById('role-title').innerText = `${roleNames[currentTab]} — Недельный план`;
+
+      document.querySelectorAll('.meta-input-box').forEach(el => {
+        const key = el.getAttribute('data-meta');
+        el.innerText = (appData.meta && appData.meta[key]) ? appData.meta[key] : "";
+      });
+
+      document.querySelectorAll('.day-date').forEach(el => {
+        const key = el.getAttribute('data-date');
+        el.innerText = (appData.dates && appData.dates[key]) ? appData.dates[key] : "ДД.ММ";
+      });
+
+      document.querySelectorAll('.editable-cell').forEach(el => {
+        const key = el.getAttribute('data-cell');
+        el.innerHTML = (appData[currentTab] && appData[currentTab][key]) ? appData[currentTab][key] : "";
+      });
+    }
+
+    function switchTab(roleKey, btnElement) {
+      saveCurrentTabToMemory();
+      currentTab = roleKey;
+
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      btnElement.classList.add('active');
+
+      renderTableBody();
+      loadTabContent();
+    }
+
+    /* --- СИСТЕМА СОХРАНЕНИЯ МИКРОЦИКЛОВ (В БРАУЗЕРЕ / В СИСТЕМЕ) --- */
+
+    function getSavedCycles() {
+      try {
+        return JSON.parse(localStorage.getItem('football_saved_cycles_library') || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function updateCyclesBadge() {
+      const list = getSavedCycles();
+      document.getElementById('cycles-count').innerText = list.length;
+    }
+
+    function saveToSystemPrompt() {
+      saveCurrentTabToMemory();
+      const defaultName = `${appData.meta.team || 'Команда'} — ${appData.meta.cycleType || 'Микроцикл'}`;
+      const name = prompt("Введите название для сохранения микроцикла в системе:", defaultName);
+      
+      if (!name) return;
+
+      const cycles = getSavedCycles();
+      const newEntry = {
+        id: currentCycleId || 'cycle_' + Date.now(),
+        name: name.trim(),
+        date: new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        data: JSON.parse(JSON.stringify(appData))
+      };
+
+      const existingIndex = cycles.findIndex(c => c.id === newEntry.id);
+      if (existingIndex >= 0) {
+        cycles[existingIndex] = newEntry;
+      } else {
+        cycles.unshift(newEntry);
+      }
+
+      currentCycleId = newEntry.id;
+      localStorage.setItem('football_saved_cycles_library', JSON.stringify(cycles));
+      updateCyclesBadge();
+      showToast(`Микроцикл «${newEntry.name}» сохранён!`);
+    }
+
+    function openLibraryModal() {
+      const modal = document.getElementById('libraryModal');
+      const container = document.getElementById('savedCyclesList');
+      const cycles = getSavedCycles();
+
+      if (cycles.length === 0) {
+        container.innerHTML = `
+          <div class="modal-empty">
+            У вас пока нет сохранённых микроциклов.<br>
+            Заполните данные и нажмите <b>«Сохранить в системе»</b>.
+          </div>
+        `;
+      } else {
+        container.innerHTML = cycles.map(c => `
+          <div class="saved-item-card">
+            <div class="saved-item-info">
+              <div class="saved-item-name">${escapeHtml(c.name)}</div>
+              <div class="saved-item-sub">Сохранено: ${c.date}</div>
+            </div>
+            <div class="saved-item-actions">
+              <button onclick="loadSavedCycle('${c.id}')" style="background:#0f172a; color:#fff; border:none; padding:6px 12px; font-size:12px;">Открыть</button>
+              <button onclick="deleteSavedCycle('${c.id}')" class="btn-danger" style="padding:6px 10px; font-size:12px;">Удалить</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      modal.classList.add('active');
+    }
+
+    function closeLibraryModal() {
+      document.getElementById('libraryModal').classList.remove('active');
+    }
+
+    function loadSavedCycle(id) {
+      const cycles = getSavedCycles();
+      const cycle = cycles.find(c => c.id === id);
+      if (!cycle) return;
+
+      currentCycleId = cycle.id;
+      appData = JSON.parse(JSON.stringify(cycle.data));
+      renderTableBody();
+      loadTabContent();
+      closeLibraryModal();
+      showToast(`Загружен план: «${cycle.name}»`);
+    }
+
+    function deleteSavedCycle(id) {
+      if (!confirm("Удалить этот микроцикл из системы?")) return;
+      let cycles = getSavedCycles();
+      cycles = cycles.filter(c => c.id !== id);
+      localStorage.setItem('football_saved_cycles_library', JSON.stringify(cycles));
+      updateCyclesBadge();
+      openLibraryModal();
+      showToast("Микроцикл удален");
+    }
+
+    /* --- ЭКСПОРТ: ФОТО (PNG) И PDF ДЛЯ ТЕЛЕФОНА И ПК --- */
+
+    async function generateCanvas() {
+      saveCurrentTabToMemory();
+      const area = document.getElementById('capture-area');
+
+      return await html2canvas(area, {
+        scale: 2.2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        onclone: (clonedDoc) => {
+          // Гарантируем идеальную ширину даже если экспорт запускается с узкого экрана телефона
+          const clonedArea = clonedDoc.getElementById('capture-area');
+          clonedArea.style.width = '1480px';
+          clonedArea.style.minWidth = '1480px';
+          clonedArea.style.maxWidth = '1480px';
+          clonedArea.style.padding = '32px';
+
+          const wrapper = clonedArea.querySelector('.table-wrapper');
+          if (wrapper) {
+            wrapper.style.overflow = 'visible';
+            wrapper.style.width = '100%';
+          }
+
+          const table = clonedArea.querySelector('table');
+          if (table) {
+            table.style.width = '100%';
+            table.style.minWidth = '100%';
+          }
+        }
+      });
+    }
+
+    async function downloadImage() {
+      const btn = document.getElementById('btn-export-png');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<span>⏳ Создание фото...</span>';
+      btn.style.pointerEvents = 'none';
+
+      try {
+        const canvas = await generateCanvas();
+        const team = (appData.meta?.team || 'Команда').replace(/\s+/g, '_');
+        const filename = `Микроцикл_${team}_${roleNames[currentTab]}.png`;
+
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = canvas.toDataURL('image/png');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast("Фото успешно загружено!");
+      } catch (err) {
+        console.error('Ошибка PNG:', err);
+        alert('Не удалось сгенерировать изображение. Попробуйте еще раз.');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.style.pointerEvents = 'auto';
+      }
+    }
+
+    async function downloadPDF() {
+      const btn = document.getElementById('btn-export-pdf');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<span>⏳ Создание PDF...</span>';
+      btn.style.pointerEvents = 'none';
+
+      try {
+        const canvas = await generateCanvas();
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Создаем альбомный A4 документ
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+          orientation: 'landscape',
+          unit: 'mm',
+          format: 'a4'
+        });
+
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 8;
+        const maxW = pageWidth - margin * 2;
+        const maxH = pageHeight - margin * 2;
+
+        const imgAspect = canvas.width / canvas.height;
+        let imgW = maxW;
+        let imgH = imgW / imgAspect;
+
+        if (imgH > maxH) {
+          imgH = maxH;
+          imgW = imgH * imgAspect;
+        }
+
+        const posX = margin + (maxW - imgW) / 2;
+        const posY = margin + (maxH - imgH) / 2;
+
+        pdf.addImage(imgData, 'PNG', posX, posY, imgW, imgH, undefined, 'FAST');
+
+        const team = (appData.meta?.team || 'Команда').replace(/\s+/g, '_');
+        pdf.save(`Микроцикл_${team}_${roleNames[currentTab]}.pdf`);
+        showToast("PDF-файл успешно скачан!");
+      } catch (err) {
+        console.error('Ошибка PDF:', err);
+        alert('Не удалось сформировать PDF.');
+      } finally {
+        btn.innerHTML = originalText;
+        btn.style.pointerEvents = 'auto';
+      }
+    }
+
+    function saveToFile() {
+      saveCurrentTabToMemory();
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      const team = (appData.meta?.team || 'Микроцикл').replace(/\s+/g, '_');
+      downloadAnchor.setAttribute("download", `${team}_Все_Тренеры.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showToast("Резервная копия .json сохранена");
+    }
+
+    function loadFromFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          appData = Object.assign({ meta: {}, dates: {}, head: {}, gk: {}, fitness: {} }, imported);
+          renderTableBody();
+          loadTabContent();
+          showToast("План успешно загружен из файла!");
+        } catch (err) {
+          alert("Ошибка чтения файла .json");
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function clearCurrentPlan() {
+      if (confirm(`Очистить данные текущей вкладки «${roleNames[currentTab]}»?`)) {
+        appData[currentTab] = {};
+        renderTableBody();
+        loadTabContent();
+        showToast("Данные вкладки очищены");
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-message').innerText = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.innerText = text || '';
+      return div.innerHTML;
+    }
+
+    // Закрытие модального окна по клику вне его
+    document.getElementById('libraryModal').addEventListener('click', (e) => {
+      if (e.target.id === 'libraryModal') closeLibraryModal();
+    });
+
+    init();
+  </script>
+</body>
+</html>
